@@ -12,7 +12,7 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply batunpc
 
 grabs homebrew + everything, drops the configs in place. open a new terminal after.
 
-(set your terminal font to a nerd font, the brewfile installs MesloLGS NF, otherwise the prompt icons show up as little tofu boxes.)
+(set your terminal font to **MesloLGS NF** — the install drops it into `~/Library/Fonts` — otherwise the prompt icons show up as little tofu boxes.)
 
 ## what's in here
 

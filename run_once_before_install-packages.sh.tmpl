@@ -29,7 +29,16 @@ if [ ! -d "$HOME/.config/zsh/fzf-tab" ]; then
   git clone --depth 1 https://github.com/Aloxaf/fzf-tab "$HOME/.config/zsh/fzf-tab"
 fi
 
-# 4. terminaltexteffects — optional eye-candy (needs uv)
+# 4. MesloLGS NF — p10k's recommended font (has the os_icon ghost + all powerline glyphs).
+#    The generic Nerd Font cask in the Brewfile lacks the legacy ghost codepoint, so grab this.
+fontdir="$HOME/Library/Fonts"; mkdir -p "$fontdir"
+_fbase="https://github.com/romkatv/powerlevel10k-media/raw/master"
+for _f in "MesloLGS NF Regular.ttf" "MesloLGS NF Bold.ttf" "MesloLGS NF Italic.ttf" "MesloLGS NF Bold Italic.ttf"; do
+  [ -f "$fontdir/$_f" ] || { echo "==> Font: $_f"; curl -fsSL "$_fbase/${_f// /%20}" -o "$fontdir/$_f"; }
+done
+echo "==> Set your terminal font to 'MesloLGS NF'."
+
+# 5. terminaltexteffects — optional eye-candy (needs uv)
 if command -v uv >/dev/null 2>&1; then
   uv tool install terminaltexteffects >/dev/null 2>&1 || true
 fi
