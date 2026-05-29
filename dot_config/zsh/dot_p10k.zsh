@@ -185,7 +185,8 @@
   # OS identifier color.
   typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=77
   # Custom icon.
-  typeset -g POWERLEVEL9K_OS_ICON_CONTENT_EXPANSION=%B$'\uF79F'
+  # Left-edge icon: set per-session to a random creature in .zshrc (P10K_OS_ICON).
+  typeset -g POWERLEVEL9K_OS_ICON_CONTENT_EXPANSION="%B${P10K_OS_ICON}"
 
   ################################[ prompt_char: prompt symbol ]################################
   # Transparent background.
