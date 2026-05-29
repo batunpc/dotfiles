@@ -97,8 +97,8 @@ else
     source "$HOME/.config/powerlevel10k/powerlevel10k.zsh-theme"
   fi
   # random left-edge Nerd Font glyph + color, changes every session (used by .p10k.zsh)
-  #     bug gamepad paw rocket star fire bolt heart shuttle octoface moon ninja bomb magic rebel
-  _codes=(f188 f11b f1b0 f135 f005 f06d f0e7 f004 f197 f400 f186 f21b f1e2 f0d0 f1d0)
+  #     curated to glyphs that render at a uniform size: bug paw rocket star heart fire ninja bomb magic rebel
+  _codes=(f188 f1b0 f135 f005 f004 f06d f21b f1e2 f0d0 f1d0)
   _cols=(39 75 111 212 213 141 183 114 84 215 222 80 209 203 220)
   P10K_OS_ICON=$(print -n "\u${_codes[RANDOM % $#_codes + 1]}")
   P10K_OS_COLOR=${_cols[RANDOM % $#_cols + 1]}
