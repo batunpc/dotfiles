@@ -1,0 +1,384 @@
+# ─── ~/.zshrc ────────────────────────────────────────────────────────────────
+# Fast, modern zsh.  Real file: ~/.config/zsh/.zshrc  (symlinked from ~/.zshrc)
+# Backup of previous file at ~/.zshrc.bak.*
+# Reload after edits with:  exec zsh
+# Measure startup with:     timezsh
+
+# ─── Prompt selection ────────────────────────────────────────────────────────
+# Which prompt to load: p10k (default) or minimal. Flip with: prompt minimal
+ZSH_PROMPT="$(cat ${ZDOTDIR:-$HOME/.config/zsh}/.prompt 2>/dev/null || echo p10k)"
+
+# ─── Powerlevel10k instant prompt (MUST stay near the top; p10k only) ────────
+# Renders the prompt immediately on shell start; the real prompt fills in after.
+if [[ "$ZSH_PROMPT" == p10k && -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# ─── Homebrew (must be early so later code finds brew-installed binaries) ────
+# Portable across Apple Silicon (/opt/homebrew) and Intel (/usr/local).
+if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+export BREW_PREFIX="${HOMEBREW_PREFIX:-$(brew --prefix 2>/dev/null)}"
+
+# ─── PATH ────────────────────────────────────────────────────────────────────
+# Add each dir only if it exists, so this stays portable across machines.
+typeset -U path PATH                                # auto-dedupe entries
+_add=()
+for _p in \
+  $HOME/.local/bin \
+  $HOME/.bun/bin \
+  $HOME/.yarn/bin \
+  $HOME/.config/yarn/global/node_modules/.bin \
+  $HOME/.cargo/bin \
+  $HOME/documents/flutter/bin \
+  $HOME/.maestro/bin \
+  $HOME/.lmstudio/bin \
+  $HOME/.dotnet/tools \
+  $HOME/Library/Android/sdk/platform-tools \
+  $BREW_PREFIX/opt/openssl@1.1/bin \
+  $BREW_PREFIX/opt/qt@5/bin \
+  /Library/Frameworks/Python.framework/Versions/3.12/bin
+do
+  [[ -d "$_p" ]] && _add+=("$_p")
+done
+path=($_add $path)
+unset _p _add
+export PATH
+
+export LANG=en_US.UTF-8
+export BUN_INSTALL="$HOME/.bun"
+# JAVA_HOME: prefer a pinned JDK if present, else fall back to system java_home.
+if [[ -d "$HOME/Library/Java/JavaVirtualMachines/openjdk-17.0.2/Contents/Home" ]]; then
+  export JAVA_HOME="$HOME/Library/Java/JavaVirtualMachines/openjdk-17.0.2/Contents/Home"
+elif [[ -x /usr/libexec/java_home ]]; then
+  export JAVA_HOME="$(/usr/libexec/java_home 2>/dev/null)"
+fi
+[[ -n "$JAVA_HOME" && -d "$JAVA_HOME/bin" ]] && path=("$JAVA_HOME/bin" $path) && export PATH
+
+# ─── History ─────────────────────────────────────────────────────────────────
+HISTFILE=$HOME/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+setopt HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS \
+       HIST_VERIFY SHARE_HISTORY INC_APPEND_HISTORY EXTENDED_HISTORY
+
+# ─── Shell options ───────────────────────────────────────────────────────────
+setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_SILENT
+setopt INTERACTIVE_COMMENTS PROMPT_SUBST GLOB_DOTS NO_BEEP
+setopt CORRECT NUMERIC_GLOB_SORT
+
+# ─── Completions (cached, refreshes once per day) ────────────────────────────
+# -i: skip any group/other-writable fpath dirs instead of stopping with a
+# "[y]/[n]?" prompt that hangs the shell (common with Homebrew completion dirs).
+autoload -Uz compinit
+if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+  compinit -i                                       # ≥24h old → full rebuild, ignore insecure
+else
+  compinit -C -i                                    # fresh → use cache, skip security check
+fi
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*' group-name ''
+
+# ─── Prompt ──────────────────────────────────────────────────────────────────
+# p10k (default) or a minimal pure-zsh prompt. Switch with `prompt <name>`.
+if [[ "$ZSH_PROMPT" == minimal ]]; then
+  source ~/.config/zsh/prompts/minimal.zsh
+else
+  # Powerlevel10k: brew install preferred, manual clone fallback. `p10k configure` to tweak.
+  if [[ -r "$BREW_PREFIX/share/powerlevel10k/powerlevel10k.zsh-theme" ]]; then
+    source "$BREW_PREFIX/share/powerlevel10k/powerlevel10k.zsh-theme"
+  elif [[ -r "$HOME/.config/powerlevel10k/powerlevel10k.zsh-theme" ]]; then
+    source "$HOME/.config/powerlevel10k/powerlevel10k.zsh-theme"
+  fi
+  [ -f ~/.config/zsh/.p10k.zsh ] && source ~/.config/zsh/.p10k.zsh
+fi
+
+# prompt switcher: `prompt minimal` or `prompt p10k` (persists per machine, reloads)
+prompt() {
+  local choice="$1" file="${ZDOTDIR:-$HOME/.config/zsh}/.prompt"
+  case "$choice" in
+    p10k|minimal) print -r -- "$choice" > "$file"; print -P "%F{green}→%f prompt: $choice"; exec zsh ;;
+    "")  print -P "current: %F{cyan}$ZSH_PROMPT%f    usage: prompt {p10k|minimal}" ;;
+    *)   print -P "%F{red}unknown prompt:%f $choice    (options: p10k, minimal)" ;;
+  esac
+}
+
+# ─── LS_COLORS ───────────────────────────────────────────────────────────────
+[ -f ~/.config/.LS_COLORS/lscolors.sh ] && source ~/.config/.LS_COLORS/lscolors.sh
+
+# ─── FZF: fuzzy finder + Catppuccin-ish theme ────────────────────────────────
+if [ -f ~/.fzf.zsh ]; then
+  source ~/.fzf.zsh
+elif [ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]; then
+  source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
+  source /opt/homebrew/opt/fzf/shell/completion.zsh
+fi
+export FZF_DEFAULT_OPTS="
+  --height 50% --layout=reverse --border=rounded --info=inline
+  --color=bg+:#313244,bg:-1,spinner:#f5c2e7,hl:#f38ba8
+  --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc
+  --color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
+export FZF_CTRL_T_OPTS="--preview 'bat --style=numbers --color=always --line-range :500 {} 2>/dev/null || cat {}'"
+export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always --icons {} 2>/dev/null'"
+export FZF_DEFAULT_COMMAND='fd --type f --strict-mtime --hidden --follow --exclude .git 2>/dev/null || find . -type f'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
+# ─── fzf-tab: replace tab completion menu with fzf ───────────────────────────
+[ -f ~/.config/zsh/fzf-tab/fzf-tab.plugin.zsh ] && source ~/.config/zsh/fzf-tab/fzf-tab.plugin.zsh
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza --tree --level=2 --color=always --icons $realpath 2>/dev/null'
+zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --style=numbers --color=always --line-range :200 $realpath 2>/dev/null || eza --color=always --icons $realpath 2>/dev/null'
+zstyle ':fzf-tab:*' switch-group ',' '.'
+
+# ─── Plugins ─────────────────────────────────────────────────────────────────
+# zmv: pattern-based mass rename (e.g. zmv '(*).jpeg' '$1.jpg')
+autoload -Uz zmv
+
+# zsh-abbr: fish-style abbreviations that expand inline as you type.
+# Abbreviations live in ~/.config/zsh-abbr/user-abbreviations (version-controlled).
+# https://github.com/olets/zsh-abbr
+for _abbr in \
+  "$BREW_PREFIX/share/zsh-abbr/zsh-abbr.zsh" \
+  "$BREW_PREFIX/opt/zsh-abbr/share/zsh-abbr/zsh-abbr.zsh"; do
+  [[ -r "$_abbr" ]] && { source "$_abbr"; break; }
+done
+unset _abbr
+
+# carapace: argument-aware completions for 1000+ CLIs, bridged from other shells.
+# The `carapace _carapace zsh` init itself lives in the eval cache below (cheap).
+# https://carapace.sh
+export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
+
+# Autosuggestions: greyed-out completion of history as you type (→ to accept)
+if [[ -r "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+elif [[ -r "$HOME/.config/zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$HOME/.config/zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+
+# fast-syntax-highlighting must be sourced LAST among plugin sources
+if [[ -r "$BREW_PREFIX/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" ]]; then
+  source "$BREW_PREFIX/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
+fi
+# Color overrides (must run AFTER the plugin loads its theme).
+# `correct-subtle` is the key fast-syntax-highlighting's git chroma uses for
+# branch/ref arguments (e.g. `main` in `git checkout main`). Default is a blue
+# background block (bg=blue); switch it to soft blue text instead.
+# Token reference: https://github.com/zdharma-continuum/fast-syntax-highlighting
+typeset -gA FAST_HIGHLIGHT_STYLES
+FAST_HIGHLIGHT_STYLES[correct-subtle]='fg=blue'
+
+# ─── Key bindings ────────────────────────────────────────────────────────────
+bindkey '^R'   fzf-history-widget                       # ctrl+R fzf-over-history
+bindkey '^[[1;5D' backward-word                         # ctrl+left
+bindkey '^[[1;5C' forward-word                          # ctrl+right
+bindkey '^[w'  backward-kill-word                       # alt+w
+bindkey '^[.'  insert-last-word                         # alt+. last arg of previous cmd
+
+# ─── Aliases: modern replacements ────────────────────────────────────────────
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -lh --icons --group-directories-first --git'
+alias la='eza -lah --icons --group-directories-first --git'
+alias lt='eza --tree --level=2 --icons --git-ignore'
+alias tree='eza --tree --icons --git-ignore'
+alias exa='eza'
+alias cat='bat --paging=never --style=plain'
+alias less='bat --paging=always'
+alias grep='grep --color=auto'
+alias mkdir='mkdir -p'
+
+# ─── Aliases: convenience ────────────────────────────────────────────────────
+alias code='/Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code'
+alias zshrc='${EDITOR:-vi} ~/.zshrc && exec zsh'
+alias reload='exec zsh'
+alias ipinfo='curl -s ifconfig.me && echo && ipconfig getifaddr en0 && echo $USER@$(hostname)'
+alias ports='lsof -iTCP -sTCP:LISTEN -P -n'
+alias path='echo $PATH | tr ":" "\n"'
+
+# ─── Aliases: git shortcuts ──────────────────────────────────────────────────
+alias g='git'
+alias gs='git status -sb'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias gl='git log --oneline --graph --decorate -20'
+alias gco='git checkout'
+alias gcm='git commit -m'
+alias gp='git push'
+alias gpu='git pull'
+alias gb='git branch'
+
+# ─── Functions: utilities (preserved + extended) ─────────────────────────────
+hr() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '='; }
+
+timezsh() {
+  for i in {1..10}; do /usr/bin/time $SHELL -i -c exit; done
+}
+
+# Make a dir and cd into it
+mkcd() { mkdir -p "$1" && cd "$1"; }
+
+# Extract any archive
+extract() {
+  [[ -f "$1" ]] || { echo "❌ '$1' is not a valid file"; return 1; }
+  case "$1" in
+    *.tar.bz2)  tar xjf "$1"   ;;  *.tar.gz)   tar xzf "$1"   ;;
+    *.tar.xz)   tar xJf "$1"   ;;  *.bz2)      bunzip2 "$1"   ;;
+    *.rar)      unrar x "$1"   ;;  *.gz)       gunzip "$1"    ;;
+    *.tar)      tar xf "$1"    ;;  *.tbz2)     tar xjf "$1"   ;;
+    *.tgz)      tar xzf "$1"   ;;  *.zip)      unzip "$1"     ;;
+    *.Z)        uncompress "$1";;  *.7z)       7z x "$1"      ;;
+    *)          echo "❌ '$1': unknown archive format"; return 1 ;;
+  esac
+}
+
+# Find a process by name
+psg() { ps aux | grep -i "$1" | grep -v grep; }
+
+# ─── Functions: macOS ────────────────────────────────────────────────────────
+# 💀 Kill Spotlight if enabled
+disable_spotlight_if_active() {
+  echo "🔍 Checking Spotlight status..."
+  local sp_status=$(sudo mdutil -s / | grep -E "Indexing.*(enabled|active)")
+  if [[ -n "$sp_status" ]]; then
+    echo "⚠️  Spotlight is still active. Disabling..."
+    sudo mdutil -a -i off
+    sudo launchctl bootout system /System/Library/LaunchDaemons/com.apple.metadata.mds.plist 2>/dev/null || echo "ℹ️ Could not fully unload Spotlight daemon (normal on SIP-enabled Macs)."
+    sudo pkill mds
+    sudo pkill mdworker
+    sudo pkill mdworker_shared
+    echo "✅ Spotlight has been disabled."
+  else
+    echo "✅ Spotlight is already disabled. Nothing to do."
+  fi
+}
+
+# ─── Lazy loaders (don't slow startup) ───────────────────────────────────────
+# NVM
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$BREW_PREFIX/opt/nvm/nvm.sh" ]; then
+  nvm() {
+    unset -f nvm node npm npx 2>/dev/null
+    source "$BREW_PREFIX/opt/nvm/nvm.sh"
+    [ -f "$BREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \
+      source "$BREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
+    nvm "$@"
+  }
+  # Also lazy-load on first node/npm/npx call
+  node() { unset -f node npm npx nvm 2>/dev/null; source "$BREW_PREFIX/opt/nvm/nvm.sh"; node "$@"; }
+  npm()  { unset -f node npm npx nvm 2>/dev/null; source "$BREW_PREFIX/opt/nvm/nvm.sh"; npm "$@"; }
+  npx()  { unset -f node npm npx nvm 2>/dev/null; source "$BREW_PREFIX/opt/nvm/nvm.sh"; npx "$@"; }
+fi
+
+# Conda
+conda() {
+  unset -f conda
+  for _c in "$HOME/anaconda3" "$HOME/miniconda3" "$HOME/miniforge3" "$BREW_PREFIX/Caskroom/miniconda/base"; do
+    [ -f "$_c/etc/profile.d/conda.sh" ] && { source "$_c/etc/profile.d/conda.sh"; break; }
+  done
+  unset _c
+  conda "$@"
+}
+
+# ─── Eval cache: zoxide / direnv / atuin / mise ──────────────────────────────
+# These tools' `init zsh` output is dynamic but stable.  Cache it for a week
+# to skip ~150-300ms of fork/eval cost on every shell start.
+ZSHEVAL_CACHE=~/.cache/zsh-eval-cache.zsh
+ZSHEVAL_MAX_AGE=604800
+_rebuild_eval_cache() {
+  mkdir -p ~/.cache
+  {
+    command -v zoxide       &>/dev/null && zoxide init zsh
+    command -v direnv       &>/dev/null && direnv hook zsh
+    command -v atuin        &>/dev/null && atuin init zsh --disable-up-arrow
+    command -v mise         &>/dev/null && mise activate zsh
+    command -v carapace     &>/dev/null && carapace _carapace zsh
+    command -v pay-respects &>/dev/null && pay-respects zsh --alias f
+  } > "$ZSHEVAL_CACHE" 2>/dev/null
+}
+if [[ -f $ZSHEVAL_CACHE ]]; then
+  _age=$(( $(date +%s) - $(stat -f %m $ZSHEVAL_CACHE 2>/dev/null || echo 0) ))
+  if (( _age < ZSHEVAL_MAX_AGE )); then
+    source $ZSHEVAL_CACHE
+  else
+    _rebuild_eval_cache
+    [[ -s $ZSHEVAL_CACHE ]] && source $ZSHEVAL_CACHE
+  fi
+else
+  _rebuild_eval_cache
+  [[ -s $ZSHEVAL_CACHE ]] && source $ZSHEVAL_CACHE
+fi
+zsh-eval-cache-rebuild() { _rebuild_eval_cache && source $ZSHEVAL_CACHE && echo "✅ Eval cache rebuilt"; }
+unset ZSHEVAL_CACHE ZSHEVAL_MAX_AGE
+
+# zoxide-cd: `cd` falls back to `z` for fuzzy navigation
+unalias cd 2>/dev/null
+cd() {
+  if (( $# == 0 )); then builtin cd
+  elif [[ -d "$1" ]]; then builtin cd "$1"
+  else z "$1" 2>/dev/null || builtin cd "$1"
+  fi
+}
+
+# ─── Modular config ──────────────────────────────────────────────────────────
+[ -f ~/.config/zsh/.zshrc.exports.sh ]   && source ~/.config/zsh/.zshrc.exports.sh
+[ -f ~/.config/zsh/.zshrc.aliases.sh ]   && source ~/.config/zsh/.zshrc.aliases.sh
+[ -f ~/.config/zsh/.zshrc.functions.sh ] && source ~/.config/zsh/.zshrc.functions.sh
+
+# ─── Dart CLI completion ─────────────────────────────────────────────────────
+[[ -f "$HOME/.dart-cli-completion/zsh-config.zsh" ]] && . "$HOME/.dart-cli-completion/zsh-config.zsh" || true
+
+# ─── Machine-local overrides + secrets (never committed) ─────────────────────
+# Put machine-specific env, tokens, and webhooks in ~/.config/zsh/local.zsh.
+# That file is gitignored / chezmoi-ignored, so it never reaches the public repo.
+[ -f ~/.config/zsh/local.zsh ] && source ~/.config/zsh/local.zsh
+
+# ─── fzf-git: Ctrl-G pickers for branches/hashes/stashes/etc. ────────────────
+# https://github.com/junegunn/fzf-git.sh
+[ -f ~/.config/fzf-git.sh ] && source ~/.config/fzf-git.sh
+
+# ─── onefetch on cd into a git repo (opt-in: export ONEFETCH_ON_CD=true) ──────
+# Off by default to keep cd snappy. The `repo` alias runs it on demand anytime.
+autoload -Uz add-zsh-hook
+_onefetch_on_cd() {
+  [[ "${ONEFETCH_ON_CD:-false}" == true ]] || return
+  command -v onefetch &>/dev/null || return
+  local top; top=$(git rev-parse --show-toplevel 2>/dev/null) || return
+  [[ "$top" == "$PWD" && "$top" != "$_ONEFETCH_LAST" ]] || return
+  _ONEFETCH_LAST="$top"; onefetch 2>/dev/null
+}
+add-zsh-hook chpwd _onefetch_on_cd
+
+# ─── Compile sourced files to bytecode (.zwc) for faster startup ──────────────
+for _f in ~/.config/zsh/.zshrc.exports.sh ~/.config/zsh/.zshrc.aliases.sh \
+          ~/.config/zsh/.zshrc.functions.sh ~/.config/zsh/.p10k.zsh; do
+  [[ -f "$_f" && ( ! -f "$_f.zwc" || "$_f" -nt "$_f.zwc" ) ]] && zcompile -R -- "$_f.zwc" "$_f" 2>/dev/null
+done
+unset _f
+
+# ─── Greeter (set TERMINAL_INTRO=off to silence) ─────────────────────────────
+# Modes: fortune | fortunecow | fortunefast | fetch | fetchfx | minimal | off
+#   fortune     — short fortune piped through lolcat (rainbow, requires lolcat)
+#   fortunecow  — short fortune in a cowsay bubble, piped through lolcat
+#   fortunefast — plain monochrome fortune (no lolcat)
+#   fetch       — fastfetch / neofetch system info
+#   minimal     — single-line "ready" banner
+#   off         — silent
+TERMINAL_INTRO="${TERMINAL_INTRO:-fortune}"
+if [[ -o interactive ]] && [[ -t 0 ]]; then
+  case "$TERMINAL_INTRO" in
+    fortune)     command -v fortune  &>/dev/null && (clear 2>/dev/null; fortune -s 2>/dev/null | (command -v lolcat &>/dev/null && lolcat || cat) 2>/dev/null) ;;
+    fortunecow)  command -v fortune  &>/dev/null && command -v cowsay &>/dev/null && (clear 2>/dev/null; fortune -s 2>/dev/null | cowsay -f tux 2>/dev/null | (command -v lolcat &>/dev/null && lolcat || cat) 2>/dev/null) ;;
+    fortunefast) command -v fortune  &>/dev/null && (clear 2>/dev/null; fortune -s 2>/dev/null) ;;
+    fetch)       command -v fastfetch &>/dev/null && (clear 2>/dev/null; fastfetch) || command -v neofetch &>/dev/null && (clear 2>/dev/null; neofetch) ;;
+    fetchfx)     command -v fastfetch &>/dev/null && command -v tte &>/dev/null && (clear 2>/dev/null; fastfetch -l none 2>/dev/null | tte slide 2>/dev/null) || { command -v fastfetch &>/dev/null && (clear 2>/dev/null; fastfetch); } ;;
+    minimal)     clear 2>/dev/null; print -P '%F{cyan}╭─────────────────────────────────────╮%f\n%F{cyan}╰%f %F{green}ready%f' ;;
+    off)         ;;
+  esac
+fi

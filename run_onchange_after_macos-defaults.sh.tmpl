@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+{{- if and (eq .chezmoi.os "darwin") .personal }}
+# macOS system defaults. Re-runs whenever this file changes (chezmoi run_onchange).
+# Conservative, widely-used tweaks. Read before you run it on a new machine.
+set -euo pipefail
+echo "==> applying macOS defaults…"
+
+# Keyboard: fast key repeat, and actually let keys repeat (nice for vim)
+defaults write -g KeyRepeat -int 2
+defaults write -g InitialKeyRepeat -int 15
+defaults write -g ApplePressAndHoldEnabled -bool false
+
+# Finder: show extensions, path + status bar, list view, search the current folder,
+# and stop nagging when you change a file extension
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+defaults write com.apple.finder ShowPathbar -bool true
+defaults write com.apple.finder ShowStatusBar -bool true
+defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+# Stop littering network / USB drives with .DS_Store files
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+
+# Screenshots: PNG, no drop shadow, saved into ~/Screenshots
+mkdir -p "$HOME/Screenshots"
+defaults write com.apple.screencapture location -string "$HOME/Screenshots"
+defaults write com.apple.screencapture type -string "png"
+defaults write com.apple.screencapture disable-shadow -bool true
+
+# Dock: autohide instantly, don't reorder spaces on me
+defaults write com.apple.dock autohide -bool true
+defaults write com.apple.dock autohide-delay -float 0
+defaults write com.apple.dock autohide-time-modifier -float 0.4
+defaults write com.apple.dock mru-spaces -bool false
+
+# Save / print panels expanded by default; save to disk, not iCloud
+defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
+defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true
+defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+
+# Trackpad: tap to click
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# Restart the apps that read these (a quick UI flash is normal)
+for app in Finder Dock SystemUIServer; do killall "$app" >/dev/null 2>&1 || true; done
+echo "✅ macOS defaults applied (a few need a logout to fully kick in)"
+{{- else }}
+# macOS defaults only run on the maintainer's Macs (personal = true).
+echo "skipping macOS defaults (not a personal machine)"
+{{- end }}

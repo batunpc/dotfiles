@@ -1,0 +1,68 @@
+[user]
+	name = {{ .name | quote }}
+	email = {{ .email | quote }}
+[init]
+	defaultBranch = main
+[core]
+	editor = code --wait
+	eol = lf
+	autocrlf = false
+	excludesfile = {{ .chezmoi.homeDir }}/.config/git/ignore
+	# delta renders diffs (see [delta] below)
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true        # n / N to jump between files in a diff
+	line-numbers = true
+	side-by-side = false    # set true if you prefer two columns
+	syntax-theme = Dracula
+[diff]
+	algorithm = histogram
+	colorMoved = default
+[merge]
+	conflictstyle = zdiff3  # shows the common ancestor in conflicts
+[pull]
+	rebase = true
+[push]
+	default = current
+	autoSetupRemote = true
+[fetch]
+	prune = true
+[rebase]
+	autoStash = true
+[rerere]
+	enabled = true          # remember resolved conflicts
+[help]
+	autocorrect = 1
+[color]
+	ui = true
+[column]
+	ui = auto
+[branch]
+	sort = -committerdate
+[credential]
+	helper = osxkeychain     # secure macOS keychain (not plaintext)
+[commit]
+	verbose = true
+[filter "lfs"]
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+[alias]
+	l = log
+	lo = log --graph --decorate --all
+	ll = log --graph --decorate --oneline --all
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	la = log --pretty=format:'[%h] %cd - Committer: %cn (%ce), Author: %an (%ae)'
+	hist = log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short
+	recent = branch --sort=-committerdate --format='%(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(color:green)(%(committerdate:relative))%(color:reset)'
+	today = !git log --since=midnight --author=\"$(git config user.name)\" --oneline
+	save = !git stash push -m "$(date +%F_%T)"
+	pop = stash pop
+	undo = reset HEAD~1 --mixed
+	cleanup = "!git branch --merged | grep -vE '^[*+]|(\\bmain\\b|\\bmaster\\b)' | xargs -r -n 1 git branch -d"
+	reb = "!r() { git rebase -i HEAD~$1; }; r"
+	ups = config --get remote.origin.url
+	yolo = !git commit -m \"$(curl -s whatthecommit.com/index.txt)\"

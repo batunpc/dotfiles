@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Runs once on first `chezmoi apply`/`chezmoi init --apply` (re-runs only if this
+# script's contents change). Installs Homebrew, the Brewfile, and plugins not in brew.
+set -euo pipefail
+
+echo "==> Bootstrapping packages…"
+
+# 1. Homebrew
+if ! command -v brew >/dev/null 2>&1; then
+  echo "==> Installing Homebrew"
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"; fi
+
+# 2. Core packages
+echo "==> brew bundle (core)"
+brew bundle --file="{{ .chezmoi.sourceDir }}/Brewfile"
+
+{{ if .personal -}}
+# 2b. Personal toolchain (only on maintainer machines)
+echo "==> brew bundle (personal)"
+brew bundle --file="{{ .chezmoi.sourceDir }}/Brewfile.personal" || true
+{{ end -}}
+
+# 3. fzf-tab — fuzzy tab completion (not in Homebrew)
+if [ ! -d "$HOME/.config/zsh/fzf-tab" ]; then
+  echo "==> Cloning fzf-tab"
+  git clone --depth 1 https://github.com/Aloxaf/fzf-tab "$HOME/.config/zsh/fzf-tab"
+fi
+
+# 4. terminaltexteffects — optional eye-candy (needs uv)
+if command -v uv >/dev/null 2>&1; then
+  uv tool install terminaltexteffects >/dev/null 2>&1 || true
+fi
+
+# 5. Make zsh the default shell if it isn't
+if [ "${SHELL:-}" != "$(command -v zsh)" ] && command -v zsh >/dev/null 2>&1; then
+  echo "==> Tip: set zsh as your login shell with:  chsh -s $(command -v zsh)"
+fi
+
+echo "✅ Packages ready. Open a new terminal (or run: exec zsh)."

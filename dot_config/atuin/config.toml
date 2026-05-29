@@ -1,0 +1,21 @@
+# atuin — magical shell history.  https://docs.atuin.sh/configuration/config/
+
+## fuzzy matching like fzf (prefix | fulltext | fuzzy | skim)
+search_mode = "fuzzy"
+
+## ↑ shows history scoped to the CURRENT directory (one of atuin's best tricks).
+## Ctrl-R still searches everything.
+filter_mode_shell_up_key_binding = "directory"
+
+## land the selected command on the prompt for editing instead of running it
+enter_accept = false
+
+## compact inline UI rather than fullscreen takeover
+style = "compact"
+inline_height = 22
+
+## keep tokens / api keys / passwords out of recorded history (default on)
+secrets_filter = true
+
+## brew owns updates, so don't nag
+update_check = false

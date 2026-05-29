@@ -1,0 +1,14 @@
+# Files that live in the repo but should NOT be applied to $HOME.
+README.md
+LICENSE
+Brewfile
+Brewfile.personal
+assets
+
+# Never manage/remove machine-local state.
+.config/zsh/local.zsh
+.config/zsh/.prompt
+
+# Runtime junk.
+**/*.zwc
+.DS_Store

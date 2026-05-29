@@ -1,0 +1,8 @@
+{{/* Runs on `chezmoi init`. Prompts each new user for their own identity. */}}
+{{- $name := promptStringOnce . "name" "Your name (for git commits)" -}}
+{{- $email := promptStringOnce . "email" "Your git email" -}}
+{{- $personal := promptBoolOnce . "personal" "Install the maintainer's personal toolchain (Flutter/Android/DBs)?" false -}}
+[data]
+    name = {{ $name | quote }}
+    email = {{ $email | quote }}
+    personal = {{ $personal }}

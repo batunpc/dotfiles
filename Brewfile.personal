@@ -1,0 +1,44 @@
+# Brewfile.personal — the maintainer's heavier toolchain.
+# Only installed when `personal = true` in ~/.config/chezmoi/chezmoi.toml.
+# Trim this freely if you fork the repo.
+
+tap "mongodb/brew"
+
+# ── JS / web ──────────────────────────────────────────────────────────────────
+brew "node"
+brew "nvm"
+brew "yarn"
+brew "pnpm"
+brew "deno"
+brew "prettier"
+
+# ── Python ────────────────────────────────────────────────────────────────────
+brew "pyenv"
+brew "uv"
+
+# ── Mobile / build ────────────────────────────────────────────────────────────
+cask "android-platform-tools"   # adb, fastboot
+brew "cocoapods"
+brew "ninja"
+brew "cmake"
+
+# ── Databases ─────────────────────────────────────────────────────────────────
+brew "postgresql@16"
+brew "mysql"
+brew "mongosh"
+brew "mongodb/brew/mongodb-community"
+
+# ── Cloud / devops ────────────────────────────────────────────────────────────
+brew "awscli"
+brew "mkcert"
+brew "nmap"
+brew "graphviz"
+
+# ── Apps ──────────────────────────────────────────────────────────────────────
+cask "visual-studio-code"
+cask "rectangle"                # window manager
+cask "docker"
+
+# ── Security tooling ──────────────────────────────────────────────────────────
+brew "gnupg"
+brew "wireshark"

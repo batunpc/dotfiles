@@ -1,0 +1,17 @@
+# Global gitignore (git reads ~/.config/git/ignore automatically).
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.log
+node_modules/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+*.zwc
+.env
+.env.local
+.direnv/
+.venv/
