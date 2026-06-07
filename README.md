@@ -1,5 +1,3 @@
-# batudot
-
 what my terminal looks like. macOS, zsh, and the cli tools i'd miss on a fresh machine.
 
 kept in sync across my two macs with [chezmoi](https://chezmoi.io).
